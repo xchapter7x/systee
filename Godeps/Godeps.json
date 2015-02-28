@@ -1,0 +1,32 @@
+{
+	"ImportPath": "github.com/xchapter7x/systee",
+	"GoVersion": "go1.2.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/jeromer/syslogparser",
+			"Rev": "812866d0389ae7e1f5a0110d47dea20224fc776f"
+		},
+		{
+			"ImportPath": "github.com/mcuadros/go-syslog",
+			"Comment": "v2.0.0-1-g022467b",
+			"Rev": "022467bfe322d411fc19cd772c810d75027a0f43"
+		},
+		{
+			"ImportPath": "github.com/xchapter7x/goutil/itertools",
+			"Rev": "db5c3778bb08a6bf21c13b7c0109c591fd1350f2"
+		},
+		{
+			"ImportPath": "gopkg.in/mcuadros/go-syslog.v2",
+			"Comment": "v2.0.0",
+			"Rev": "f22fa4cce7e718c50fe7adc6e98d703f39e285e0"
+		},
+		{
+			"ImportPath": "launchpad.net/gocheck",
+			"Comment": "87",
+			"Rev": "gustavo@niemeyer.net-20140225173054-xu9zlkf9kxhvow02"
+		}
+	]
+}
