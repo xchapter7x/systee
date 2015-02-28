@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	gsyslog "github.com/mcuadros/go-syslog"
+	"github.com/mcuadros/go-syslog/format"
 	"github.com/xchapter7x/goutil/itertools"
 )
 
@@ -27,6 +28,7 @@ type Listener struct {
 type formatter interface {
 	SetFormat(format.Format)
 	ListenUDP(string)
+	ListenTCP(string)
 }
 
 type LogMsg map[string]interface{}
