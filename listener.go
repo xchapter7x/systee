@@ -4,8 +4,7 @@ import (
 	"fmt"
 
 	gsyslog "github.com/mcuadros/go-syslog"
-	"github.com/mcuadros/go-syslog/format"
-	"github.com/xchapter7x/goutil/itertools"
+	"gopkg.in/mcuadros/go-syslog.v2/format"
 )
 
 const (
@@ -17,69 +16,90 @@ const (
 	RFC6587
 )
 
+func NewListener(host string, port, proto, format int) *Listener {
+	return &Listener{
+		host:   host,
+		port:   port,
+		proto:  proto,
+		format: format,
+	}
+}
+
 type Listener struct {
 	port            int
 	host            string
 	proto           int
 	format          int
-	handlerPipeline []func(LogMsg)
+	server          syslogServer
+	active          chan bool
+	logpartsChannel gsyslog.LogPartsChannel
 }
 
-type formatter interface {
+type syslogServer interface {
 	SetFormat(format.Format)
-	ListenUDP(string)
-	ListenTCP(string)
+	ListenUDP(string) error
+	ListenTCP(string) error
+	Kill() error
 }
 
 type LogMsg map[string]interface{}
 
 func (s *Listener) AddHandler(h func(LogMsg)) {
-	handlerPipeline = append(handlerPipeline, h)
+
+	go func() {
+		for logParts := range s.logpartsChannel {
+			h(LogMsg(logParts))
+		}
+	}()
 }
 
 func (s *Listener) addr() string {
-	return fmt.Sprintf("%s:%s", s.host, s.port)
+	return fmt.Sprintf("%s:%d", s.host, s.port)
 }
 
-func (s *Listener) setLogFormat(server formatter) {
+func (s *Listener) setLogFormat() {
 	switch s.format {
 	case RFC5424:
-		server.SetFormat(gsyslog.RFC5424)
+		s.server.SetFormat(gsyslog.RFC5424)
 
 	case RFC3164:
-		server.SetFormat(gsyslog.RFC3164)
+		s.server.SetFormat(gsyslog.RFC3164)
 
 	case RFC6587:
-		server.SetFormat(gsyslog.RFC6587)
+		s.server.SetFormat(gsyslog.RFC6587)
 	}
 }
 
-func (s *Listener) setLogProtocol(server formatter) {
+func (s *Listener) setLogProtocol() {
 	if s.proto == UDP || s.proto == TCPUDP {
-		server.ListenUDP(s.addr())
+		s.server.ListenUDP(s.addr())
 	}
 
 	if s.proto == TCP || s.proto == TCPUDP {
-		server.ListenTCP(s.addr())
+		s.server.ListenTCP(s.addr())
 	}
 }
 
+func (s *Listener) Stop() {
+	s.server.Kill()
+}
+
+func (s *Listener) IsListening() chan bool {
+	return s.active
+}
+
 func (s *Listener) Listen() (err error) {
-	channel := make(gsyslog.LogPartsChannel)
-	handler := gsyslog.NewChannelHandler(channel)
+	s.logpartsChannel = make(gsyslog.LogPartsChannel)
+	handler := gsyslog.NewChannelHandler(s.logpartsChannel)
 	server := gsyslog.NewServer()
-	s.setLogFormat(server)
+	s.server = server
+	s.setLogFormat()
 	server.SetHandler(handler)
-	s.setLogProtocol(server)
+	s.setLogProtocol()
 	server.Boot()
-
-	go func(channel gsyslog.LogPartsChannel) {
-
-		for logParts := range channel {
-			itertools.Each(handlerPipeline, func(handler func(LogMsg)) {
-				handler(logParts)
-			})
-		}
-	}(channel)
-	server.Wait()
+	s.active = make(chan bool)
+	go func() {
+		s.active <- true
+	}()
+	return
 }

@@ -15,18 +15,19 @@
 			"Rev": "022467bfe322d411fc19cd772c810d75027a0f43"
 		},
 		{
-			"ImportPath": "github.com/xchapter7x/goutil/itertools",
-			"Rev": "db5c3778bb08a6bf21c13b7c0109c591fd1350f2"
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.1.0-25-g9c7cbc4",
+			"Rev": "9c7cbc493e1b6f86b6c67d4538c1f42b2ac85d4f"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Comment": "v1.0-23-g2cd6d99",
+			"Rev": "2cd6d99ccf3ac7ae8398d8296429161bf7061ae2"
 		},
 		{
 			"ImportPath": "gopkg.in/mcuadros/go-syslog.v2",
 			"Comment": "v2.0.0",
 			"Rev": "f22fa4cce7e718c50fe7adc6e98d703f39e285e0"
-		},
-		{
-			"ImportPath": "launchpad.net/gocheck",
-			"Comment": "87",
-			"Rev": "gustavo@niemeyer.net-20140225173054-xu9zlkf9kxhvow02"
 		}
 	]
 }
