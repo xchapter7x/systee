@@ -58,25 +58,26 @@ func (s *Listener) addr() string {
 
 func (s *Listener) setLogFormat() {
 	switch s.format {
-	case RFC5424:
-		s.server.SetFormat(gsyslog.RFC5424)
-
 	case RFC3164:
 		s.server.SetFormat(gsyslog.RFC3164)
 
 	case RFC6587:
 		s.server.SetFormat(gsyslog.RFC6587)
+
+	default:
+		s.server.SetFormat(gsyslog.RFC5424)
 	}
 }
 
-func (s *Listener) setLogProtocol() {
-	if s.proto == UDP || s.proto == TCPUDP {
-		s.server.ListenUDP(s.addr())
+func (s *Listener) setLogProtocol() (err error) {
+	if (s.proto == UDP || s.proto == TCPUDP) && err == nil {
+		err = s.server.ListenUDP(s.addr())
 	}
 
-	if s.proto == TCP || s.proto == TCPUDP {
-		s.server.ListenTCP(s.addr())
+	if (s.proto == TCP || s.proto == TCPUDP) && err == nil {
+		err = s.server.ListenTCP(s.addr())
 	}
+	return
 }
 
 func (s *Listener) Stop() {
@@ -90,7 +91,9 @@ func (s *Listener) Listen() (err error) {
 	s.server = server
 	s.setLogFormat()
 	server.SetHandler(handler)
-	s.setLogProtocol()
-	server.Boot()
+
+	if err = s.setLogProtocol(); err == nil {
+		err = server.Boot()
+	}
 	return
 }

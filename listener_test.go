@@ -21,70 +21,67 @@ var _ = Describe("Listener", func() {
 			slog     *syslog.Writer
 		)
 
-		BeforeEach(func() {
-			proto = TCP
-			format = RFC5424
-			listener = NewListener(host, port, proto, format)
-			listener.Listen()
-			h := fmt.Sprintf("%s:%d", host, port)
-			slog, _ = syslog.Dial("tcp", h, syslog.LOG_DEBUG, "TestSyslog")
-		})
-
-		AfterEach(func() {
-			slog.Close()
-			listener.Stop()
-		})
-
-		Context("Sending a log message over TCP", func() {
-			var (
-				logMsg LogMsg
-				cnt    int = 0
-				wg     *sync.WaitGroup
-			)
-
+		Context("Listener fails to boot server", func() {
 			BeforeEach(func() {
-				wg = new(sync.WaitGroup)
-				wg.Add(1)
-				listener.AddHandler(func(lm LogMsg) {
-					defer wg.Done()
-					logMsg = lm
-					cnt++
-				})
+				proto = TCP
+				format = RFC5424
+				listener = NewListener("99.99.99.99", port, proto, format)
+			})
+
+			It("Should return an error", func() {
+				err := listener.Listen()
+				Ω(err).ShouldNot(BeNil())
+			})
+		})
+
+		Context("listener successfully listening TCP", func() {
+			BeforeEach(func() {
+				proto = TCP
+				format = RFC5424
+				listener = NewListener(host, port, proto, format)
+				listener.Listen()
+				h := fmt.Sprintf("%s:%d", host, port)
+				slog, _ = syslog.Dial("tcp", h, syslog.LOG_DEBUG, "TestSyslog")
 			})
 
 			AfterEach(func() {
-				cnt = 0
+				slog.Close()
+				listener.Stop()
 			})
 
-			Context("single handler", func() {
+			Context("Sending a log message over TCP", func() {
+				var (
+					logMsg LogMsg
+					cnt    int = 0
+					wg     *sync.WaitGroup
+				)
+
 				BeforeEach(func() {
-					slog.Info("hello there")
-					wg.Wait()
+					wg = new(sync.WaitGroup)
+					wg.Add(1)
+					listener.AddHandler(func(lm LogMsg) {
+						defer wg.Done()
+						logMsg = lm
+						cnt++
+					})
 				})
 
-				It("should fire one handler which recieves the logmsg", func() {
-					Ω(logMsg).ShouldNot(BeNil())
-					Ω(cnt).Should(Equal(1))
+				AfterEach(func() {
+					cnt = 0
+				})
+
+				Context("single handler", func() {
+					BeforeEach(func() {
+						slog.Info("hello there")
+						wg.Wait()
+					})
+
+					It("should fire one handler which recieves the logmsg", func() {
+						Ω(logMsg).ShouldNot(BeNil())
+						Ω(cnt).Should(Equal(1))
+					})
 				})
 			})
-
-			//Context("multiple handlers", func() {
-			//BeforeEach(func() {
-			//wg.Add(1)
-			//listener.AddHandler(func(lm LogMsg) {
-			//defer wg.Done()
-			//logMsg = lm
-			//cnt++
-			//})
-			//slog.Info("hello there again")
-			//wg.Wait()
-			//})
-
-			//It("Should fire nultiple handlers which all recieve logmsg", func() {
-			//Ω(logMsg).ShouldNot(BeNil())
-			//Ω(cnt).Should(BeNumerically(">", 1))
-			//})
-			//})
 		})
 	})
 })
