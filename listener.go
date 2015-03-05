@@ -31,7 +31,6 @@ type Listener struct {
 	proto           int
 	format          int
 	server          syslogServer
-	active          chan bool
 	logpartsChannel gsyslog.LogPartsChannel
 }
 
@@ -84,10 +83,6 @@ func (s *Listener) Stop() {
 	s.server.Kill()
 }
 
-func (s *Listener) IsListening() chan bool {
-	return s.active
-}
-
 func (s *Listener) Listen() (err error) {
 	s.logpartsChannel = make(gsyslog.LogPartsChannel)
 	handler := gsyslog.NewChannelHandler(s.logpartsChannel)
@@ -97,9 +92,5 @@ func (s *Listener) Listen() (err error) {
 	server.SetHandler(handler)
 	s.setLogProtocol()
 	server.Boot()
-	s.active = make(chan bool)
-	go func() {
-		s.active <- true
-	}()
 	return
 }

@@ -3,6 +3,7 @@ package systee_test
 import (
 	"fmt"
 	"log/syslog"
+	"sync"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,12 +26,8 @@ var _ = Describe("Listener", func() {
 			format = RFC5424
 			listener = NewListener(host, port, proto, format)
 			listener.Listen()
-			active := listener.IsListening()
-			select {
-			case <-active:
-				h := fmt.Sprintf("%s:%d", host, port)
-				slog, _ = syslog.Dial("tcp", h, syslog.LOG_DEBUG, "TestSyslog")
-			}
+			h := fmt.Sprintf("%s:%d", host, port)
+			slog, _ = syslog.Dial("tcp", h, syslog.LOG_DEBUG, "TestSyslog")
 		})
 
 		AfterEach(func() {
@@ -39,23 +36,55 @@ var _ = Describe("Listener", func() {
 		})
 
 		Context("Sending a log message over TCP", func() {
-			It("should fire the handler", func() {
-				var logMsg LogMsg
-				var called chan bool
-				var cnt int
-				called = make(chan bool, 1)
+			var (
+				logMsg LogMsg
+				cnt    int = 0
+				wg     *sync.WaitGroup
+			)
+
+			BeforeEach(func() {
+				wg = new(sync.WaitGroup)
+				wg.Add(1)
 				listener.AddHandler(func(lm LogMsg) {
-					called <- true
+					defer wg.Done()
 					logMsg = lm
 					cnt++
 				})
-				slog.Info("hello there")
-				select {
-				case <-called:
+			})
+
+			AfterEach(func() {
+				cnt = 0
+			})
+
+			Context("single handler", func() {
+				BeforeEach(func() {
+					slog.Info("hello there")
+					wg.Wait()
+				})
+
+				It("should fire one handler which recieves the logmsg", func() {
 					Ω(logMsg).ShouldNot(BeNil())
 					Ω(cnt).Should(Equal(1))
-				}
+				})
 			})
+
+			//Context("multiple handlers", func() {
+			//BeforeEach(func() {
+			//wg.Add(1)
+			//listener.AddHandler(func(lm LogMsg) {
+			//defer wg.Done()
+			//logMsg = lm
+			//cnt++
+			//})
+			//slog.Info("hello there again")
+			//wg.Wait()
+			//})
+
+			//It("Should fire nultiple handlers which all recieve logmsg", func() {
+			//Ω(logMsg).ShouldNot(BeNil())
+			//Ω(cnt).Should(BeNumerically(">", 1))
+			//})
+			//})
 		})
 	})
 })
