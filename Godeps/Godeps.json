@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.7.1",
+			"Rev": "3fc34d061b9c78a70db853c7cb6b0576b6d4f32d"
+		},
+		{
 			"ImportPath": "github.com/jeromer/syslogparser",
 			"Rev": "812866d0389ae7e1f5a0110d47dea20224fc776f"
 		},

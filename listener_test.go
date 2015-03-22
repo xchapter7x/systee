@@ -39,9 +39,12 @@ var _ = Describe("Listener", func() {
 				proto = TCP
 				format = RFC5424
 				listener = NewListener(host, port, proto, format)
-				listener.Listen()
-				h := fmt.Sprintf("%s:%d", host, port)
-				slog, _ = syslog.Dial("tcp", h, syslog.LOG_DEBUG, "TestSyslog")
+				if err := listener.Listen(); err == nil {
+					h := fmt.Sprintf("%s:%d", host, port)
+					slog, _ = syslog.Dial("tcp", h, syslog.LOG_DEBUG, "TestSyslog")
+				} else {
+					Ω(err).Should(BeNil())
+				}
 			})
 
 			AfterEach(func() {
