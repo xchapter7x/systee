@@ -2,6 +2,7 @@ package systee_test
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -11,6 +12,52 @@ import (
 
 var _ = Describe("Logforward handler", func() {
 	Describe("Logforward", func() {
+		Describe("Handle", func() {
+			Context("is able to connect to remote", func() {
+				var (
+					err      error
+					host     string = "127.0.0.1"
+					lh       LogHandler
+					listener *Listener
+					port     = 60000
+					cnt      = 0
+				)
+
+				BeforeEach(func() {
+					rand.Seed(time.Now().Unix())
+					port++
+					proto := TCP
+					format := RFC5424
+					listener = NewListener(host, port, proto, format)
+
+					if e := listener.Listen(); e == nil {
+						lh, err = NewLogforward(host, port, proto)
+					} else {
+						Ω(e).Should(BeNil())
+					}
+
+					cnt = 0
+					arg := LogMsg{"hi": "Test"}
+					wg := new(sync.WaitGroup)
+					wg.Add(1)
+					listener.AddHandler(func(lm LogMsg) {
+						defer wg.Done()
+						cnt++
+					})
+					lh.Handle(arg)
+					wg.Wait()
+				})
+
+				AfterEach(func() {
+					listener.Stop()
+				})
+
+				It("Should have actually written to the remote syslog", func() {
+					Ω(cnt).Should(BeNumerically(">", 0))
+				})
+			})
+		})
+
 		Describe("Connect", func() {
 			Context("can not connect to remote", func() {
 				var (
@@ -38,10 +85,7 @@ var _ = Describe("Logforward handler", func() {
 					host     string = "127.0.0.1"
 					lh       LogHandler
 					listener *Listener
-					port     = func(min, max int) int {
-						rand.Seed(time.Now().Unix())
-						return rand.Intn(max-min) + min
-					}(50000, 60000)
+					port     = 50000
 				)
 
 				BeforeEach(func() {
