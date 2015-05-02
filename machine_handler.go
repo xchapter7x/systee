@@ -3,6 +3,7 @@ package systee
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
@@ -10,7 +11,16 @@ import (
 )
 
 func DistanceTry() {
-	km := NewLogKMeans([]string{"alkjsdf",
+	fakeDataSet := []string{
+		`2014-02-13T11:44:52.11-0800 [API]     OUT Updated app with guid e1ca6390-cf78-4fc7-9d86-5b7ed01e9c28 ({"instances"=>2})`,
+		`2014-02-07T10:54:36.80-0800 [STG]     OUT -----> Downloading and installing node`,
+		`2014-02-13T11:44:52.07-0800 [DEA]     OUT Starting app instance (index 1) with guid e1ca6390-cf78-4fc7-9d86-5b7ed01e9c28`,
+		`2014-02-13T11:42:31.96-0800 [RTR]     OUT nifty-gui.example.com - [13/02/2014:19:42:31 +0000]
+    "GET /favicon.ico HTTP/1.1" 404 23 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36
+    (KHTML, like Gecko) Chrome/32.0.1700.107 Safari/537.36" 10.10.2.142:6609 response_time:0.004092262
+    app_id:e1ca6390-cf78-4fc7-9d86-5b7ed01e9c28`,
+		`2014-02-13T11:44:27.71-0800 [App/0]   OUT Express server started`,
+		"alkjsdf",
 		"lkd",
 		"aklshdglkahslkdhgas",
 		"kkkkkkkasdgkasdg",
@@ -22,8 +32,10 @@ func DistanceTry() {
 		"assssssssseeeeeeee",
 		"dasgasbeebebebebebe",
 		"cvcvcvcvcvcvc",
-	}, 3)
+	}
+	km := NewLogKMeans(fakeDataSet, (len(fakeDataSet) / 5))
 	km.Group()
+	km.Balance()
 }
 
 func NewLogKMeans(data []string, centeroids int) (km *LogKMeans) {
@@ -56,6 +68,14 @@ func (s *LogKMeans) setRandomCenteroids(setSize int) {
 	}
 }
 
+func weighted(d, c string) float64 {
+	return ((float64(levenshtein.Distance(d, c)) / float64(len(c))) * 10.0)
+}
+
+func normal(d, c string) float64 {
+	return float64(levenshtein.Distance(d, c))
+}
+
 func (s *LogKMeans) Group() {
 	var wg sync.WaitGroup
 
@@ -68,7 +88,7 @@ func (s *LogKMeans) Group() {
 
 			for i, c := range s.centeroids {
 
-				if ld := ((float64(levenshtein.Distance(d, c)) / float64(len(c))) * 10.0); distance == -1 || ld < distance {
+				if ld := normal(d, c); distance == -1 || ld < distance {
 					fmt.Println(ld)
 					distance = ld
 					group = i
@@ -79,9 +99,16 @@ func (s *LogKMeans) Group() {
 	}
 	wg.Wait()
 	fmt.Println(s.groups, s.centeroids, s.dataSet)
-
 }
 
 func (s *LogKMeans) Balance() {
+	fmt.Println("rebalancing...")
 
+	for gi, g := range s.groups {
+		sort.Sort(sort.StringSlice(g))
+		mid := (len(g) / 2)
+		s.centeroids[gi] = g[mid]
+		s.groups[gi] = []string{}
+	}
+	s.Group()
 }
